@@ -27,6 +27,15 @@ docker compose version
 git --version
 ```
 
+**Windows (PowerShell) works the same for these checks:**
+
+```powershell
+python --version
+docker --version
+docker compose version
+git --version
+```
+
 If any command fails, install the missing tool first.
 
 ---
@@ -44,6 +53,13 @@ ls
 # Should see: 01-localhost-vs-production, 02-docker, etc.
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+cd day12_ha-tang-cloud_va_deployment
+dir
+```
+
 ### Step 2: Run Basic Example (3 minutes)
 
 ```bash
@@ -57,6 +73,14 @@ In another terminal:
 curl http://localhost:8000/ask -X POST \
   -H "Content-Type: application/json" \
   -d '{"question": "Hello"}'
+```
+
+**Windows (PowerShell) — test with curl (Invoke-WebRequest):**
+
+```powershell
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "Hello" }'
 ```
 
 **Expected:** You get a response! 🎉
@@ -80,6 +104,14 @@ Test again:
 curl http://localhost:8000/ask -X POST \
   -H "Content-Type: application/json" \
   -d '{"question": "What is Docker?"}'
+```
+
+**Windows (PowerShell):**
+
+```powershell
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "What is Docker?" }'
 ```
 
 **Expected:** Same response, but now in a container! 🐳
@@ -116,6 +148,14 @@ curl https://your-agent.railway.app/ask -X POST \
   -d '{"question": "Am I on the cloud?"}'
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+curl -Method POST "https://your-agent.railway.app/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "Am I on the cloud?" }'
+```
+
 **Expected:** Response from the cloud! 🌐
 
 ### Step 5: Add Security (10 minutes)
@@ -130,12 +170,28 @@ export AGENT_API_KEY="my-secret-key"
 python app.py
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+cd ..\..\04-api-gateway\develop
+$env:AGENT_API_KEY="my-secret-key"
+python app.py
+```
+
 Test without key (should fail):
 ```bash
 curl http://localhost:8000/ask -X POST \
   -H "Content-Type: application/json" \
   -d '{"question": "Hello"}'
 # Expected: 401 Unauthorized
+```
+
+**Windows (PowerShell):**
+
+```powershell
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "Hello" }'
 ```
 
 Test with key (should work):
@@ -145,6 +201,14 @@ curl http://localhost:8000/ask -X POST \
   -H "Content-Type: application/json" \
   -d '{"question": "Hello"}'
 # Expected: 200 OK
+```
+
+**Windows (PowerShell):**
+
+```powershell
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "X-API-Key" = "my-secret-key"; "Content-Type" = "application/json" } `
+  -Body '{ "question": "Hello" }'
 ```
 
 ---
@@ -180,6 +244,13 @@ cd 06-lab-complete
 cat README.md
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+cd 06-lab-complete
+Get-Content .\README.md
+```
+
 **Time:** 1-2 hours  
 **Outcome:** Working production agent
 
@@ -200,6 +271,15 @@ Browse through each section's `develop/` and `production/` folders.
 ```bash
 # Kill process on port 8000
 lsof -ti:8000 | xargs kill -9
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Find PID(s) listening on port 8000
+$pids = (Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue).OwningProcess | Select-Object -Unique
+# Kill them
+$pids | ForEach-Object { Stop-Process -Id $_ -Force }
 ```
 
 **"Docker daemon not running"**
@@ -285,6 +365,13 @@ export API_KEY=secret
 export PORT=8000
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+$env:API_KEY="secret"
+$env:PORT="8000"
+```
+
 Create `.env` file:
 ```
 API_KEY=secret
@@ -296,6 +383,16 @@ Then load it:
 source .env
 # or
 export $(cat .env | xargs)
+```
+
+**Windows (PowerShell) — load from .env:**
+
+```powershell
+Get-Content .\.env | ForEach-Object {
+  if ($_ -match '^\s*#' -or $_ -match '^\s*$') { return }
+  $name, $value = $_ -split '=', 2
+  [Environment]::SetEnvironmentVariable($name.Trim(), $value.Trim(), "Process")
+}
 ```
 
 ---

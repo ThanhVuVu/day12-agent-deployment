@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy và cài requirements
 # Dùng --user để install vào /root/.local (dễ copy sang stage 2)
-COPY 02-docker/production/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 
@@ -45,9 +45,9 @@ WORKDIR /app
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy source code
-COPY 02-docker/production/main.py .
+COPY main.py .
 
-# Copy utils from project root
+# Copy utils (kept inside this build context)
 RUN mkdir -p /app/utils
 COPY utils/mock_llm.py /app/utils/mock_llm.py
 
@@ -72,9 +72,12 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
 
 # ============================================================
-# Build commands (from project root):
-#   cd ../../  # Go to project root
-#   docker build -f 02-docker/production/Dockerfile -t agent-production .
+# Build commands:
+#   # Option A: from project root (recommended)
+#   docker build -f 02-docker/production/Dockerfile -t my-agent:advanced 02-docker/production
+#   # Option B: from this folder
+#   #   cd 02-docker/production
+#   #   docker build -t my-agent:advanced .
 #   docker images agent-production  ← kiểm tra size
 #   docker run -p 8000:8000 -e ENVIRONMENT=production agent-production
 # ============================================================

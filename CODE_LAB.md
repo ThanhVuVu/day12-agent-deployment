@@ -24,6 +24,8 @@ Sau khi hoàn thành lab này, bạn sẽ:
  Terminal/Command line
 ```
 
+**Windows (PowerShell) note:** Các lệnh trong lab chủ yếu viết theo `bash` (Linux/macOS). Nếu bạn dùng PowerShell, hãy dùng các block **Windows (PowerShell)** được thêm ngay bên dưới các lệnh `bash` tương ứng (curl/export/cp/grep/kill/for-loop...).
+
 **Không cần:**
 -  OpenAI API key (dùng mock LLM)
 -  Credit card
@@ -92,6 +94,14 @@ curl http://localhost:8000/ask -X POST \
   -d '{"question": "Hello"}'
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "Hello" }'
+```
+
 **Quan sát:** Nó chạy! Nhưng có production-ready không?
 
 ###  Exercise 1.3: So sánh với advanced version
@@ -99,6 +109,15 @@ curl http://localhost:8000/ask -X POST \
 ```bash
 cd ../production
 cp .env.example .env
+pip install -r requirements.txt
+python app.py
+```
+
+**Windows (PowerShell):**
+
+```powershell
+cd ..\production
+Copy-Item .\.env.example .\.env
 pip install -r requirements.txt
 python app.py
 ```
@@ -163,6 +182,14 @@ curl http://localhost:8000/ask -X POST \
   -d '{"question": "What is Docker?"}'
 ```
 
+**Windows (PowerShell) — Test:**
+
+```powershell
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "What is Docker?" }'
+```
+
 **Quan sát:** Image size là bao nhiêu?
 ```bash
 docker images my-agent:develop
@@ -185,6 +212,13 @@ docker build -t my-agent:advanced .
 docker images | grep my-agent
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+docker build -t my-agent:advanced .
+docker images | Select-String my-agent
+```
+
 ###  Exercise 2.4: Docker Compose stack
 
 **Nhiệm vụ:** Đọc `docker-compose.yml` và vẽ architecture diagram.
@@ -204,6 +238,14 @@ curl http://localhost/health
 curl http://localhost/ask -X POST \
   -H "Content-Type: application/json" \
   -d '{"question": "Explain microservices"}'
+```
+
+**Windows (PowerShell) — Agent endpoint:**
+
+```powershell
+curl -Method POST "http://localhost/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "Explain microservices" }'
 ```
 
 ###  Checkpoint 2
@@ -260,6 +302,8 @@ railway variables set PORT=8000
 railway variables set AGENT_API_KEY=my-secret-key
 ```
 
+**Windows (PowerShell):** (giống hệt)
+
 5. Deploy:
 ```bash
 railway up
@@ -281,6 +325,14 @@ curl http://student-agent-domain/health
 curl http://studen-agent-domain/ask -X POST \
   -H "Content-Type: application/json" \
   -d '{"question": ""}'
+```
+
+**Windows (PowerShell) — Agent endpoint:**
+
+```powershell
+curl -Method POST "http://student-agent-domain/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "" }'
 ```
 
 ###  Exercise 3.2: Deploy Render (15 phút)
@@ -358,6 +410,20 @@ curl http://localhost:8000/ask -X POST \
   -d '{"question": "Hello"}'
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+# Không có key
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "Content-Type" = "application/json" } `
+  -Body '{ "question": "Hello" }'
+
+# Có key
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "X-API-Key" = "secret-key-123"; "Content-Type" = "application/json" } `
+  -Body '{ "question": "Hello" }'
+```
+
 ###  Exercise 4.2: JWT authentication (Advanced)
 
 ```bash
@@ -384,6 +450,15 @@ curl http://localhost:8000/ask -X POST \
   -d '{"question": "Explain JWT"}'
 ```
 
+**Windows (PowerShell):**
+
+```powershell
+$TOKEN = "<token_từ_bước_2>"
+curl -Method POST "http://localhost:8000/ask" `
+  -Headers @{ "Authorization" = "Bearer $TOKEN"; "Content-Type" = "application/json" } `
+  -Body '{ "question": "Explain JWT" }'
+```
+
 ###  Exercise 4.3: Rate limiting
 
 **Nhiệm vụ:** Đọc `rate_limiter.py` và trả lời:
@@ -401,6 +476,18 @@ for i in {1..20}; do
     -d '{"question": "Test '$i'"}'
   echo ""
 done
+```
+
+**Windows (PowerShell):**
+
+```powershell
+1..20 | ForEach-Object {
+  $i = $_
+  curl -Method POST "http://localhost:8000/ask" `
+    -Headers @{ "Authorization" = "Bearer $TOKEN"; "Content-Type" = "application/json" } `
+    -Body ('{ "question": "Test ' + $i + '" }')
+  ""
+}
 ```
 
 Quan sát response khi hit limit.
@@ -552,6 +639,15 @@ kill -TERM $PID
 # Quan sát: Request có hoàn thành không?
 ```
 
+**Windows (PowerShell) note:** PowerShell không có `&`/`$!`/`kill -TERM` như bash. Cách gần tương đương:
+
+```powershell
+# Start server in another terminal (khuyến nghị) rồi test bình thường.
+# Nếu cần kill process theo port:
+$pids = (Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue).OwningProcess | Select-Object -Unique
+$pids | ForEach-Object { Stop-Process -Id $_ -Force }
+```
+
 ###  Exercise 5.3: Stateless design
 
 ```bash
@@ -605,6 +701,18 @@ for i in {1..10}; do
 done
 
 # Check logs — requests được phân tán
+docker compose logs agent
+```
+
+**Windows (PowerShell):**
+
+```powershell
+1..10 | ForEach-Object {
+  $i = $_
+  curl -Method POST "http://localhost/ask" `
+    -Headers @{ "Content-Type" = "application/json" } `
+    -Body ('{ "question": "Request ' + $i + '" }')
+}
 docker compose logs agent
 ```
 
@@ -703,6 +811,16 @@ touch docker-compose.yml
 touch requirements.txt
 touch .env.example
 touch .dockerignore
+```
+
+**Windows (PowerShell):**
+
+```powershell
+mkdir my-production-agent
+cd .\my-production-agent
+
+mkdir app
+New-Item -ItemType File app\__init__.py, app\main.py, app\config.py, app\auth.py, app\rate_limiter.py, app\cost_guard.py, Dockerfile, docker-compose.yml, requirements.txt, .env.example, .dockerignore | Out-Null
 ```
 
 #### Step 2: Config management (10 phút)
@@ -832,6 +950,18 @@ curl http://localhost/ready
 curl -H "X-API-Key: secret" http://localhost/ask -X POST \
   -H "Content-Type: application/json" \
   -d '{"question": "Hello", "user_id": "user1"}'
+```
+
+**Windows (PowerShell):**
+
+```powershell
+docker compose up --scale agent=3
+
+curl "http://localhost/health" -Method GET
+curl "http://localhost/ready" -Method GET
+curl -Method POST "http://localhost/ask" `
+  -Headers @{ "X-API-Key" = "secret"; "Content-Type" = "application/json" } `
+  -Body '{ "question": "Hello", "user_id": "user1" }'
 ```
 
 #### Step 10: Deploy (10 phút)

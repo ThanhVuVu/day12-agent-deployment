@@ -11,13 +11,13 @@ FROM python:3.11
 WORKDIR /app
 
 # Bước 3: Copy requirements TRƯỚC (Docker layer cache)
-COPY 02-docker/develop/requirements.txt .
+COPY requirements.txt .
 
 # Bước 4: Cài dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Bước 5: Copy code vào container
-COPY 02-docker/develop/app.py .
+COPY app.py .
 
 # Bước 6: Copy mock utils (from build context root)
 RUN mkdir -p utils
@@ -31,8 +31,10 @@ CMD ["python", "app.py"]
 
 # ============================================================
 # Để build và chạy:
+#   # IMPORTANT: Build context phải là thư mục `02-docker/develop`
+#   # (vì Dockerfile COPY app.py và utils/mock_llm.py theo đường dẫn local)
 #   cd ../../  # Go to project root
-#   docker build -f 02-docker/develop/Dockerfile -t agent-develop .
-#   docker run -p 8000:8000 agent-develop
+#   docker build -f 02-docker/develop/Dockerfile -t my-agent:develop 02-docker/develop
+#   docker run -p 8000:8000 my-agent:develop
 #   curl http://localhost:8000/health
 # ============================================================
