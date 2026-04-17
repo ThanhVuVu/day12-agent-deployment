@@ -57,7 +57,7 @@ python app.py
 | | Basic (❌) | Advanced (✅) |
 |--|-----------|--------------|
 | Config | Hardcode trong code | Đọc từ env vars |
-| Secrets | `api_key = "sk-abc123"` | `os.getenv("OPENAI_API_KEY")` |
+| Secrets | `api_key = "OPENAI_KEY_HARDCODED"` | `os.getenv("OPENAI_API_KEY")` |
 | Port | Cố định `8000` | Từ `PORT` env var |
 | Health check | Không có | `GET /health` |
 | Shutdown | Tắt đột ngột | Graceful — hoàn thành request hiện tại |

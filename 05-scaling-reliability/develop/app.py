@@ -20,13 +20,15 @@ Simulate shutdown:
 """
 import os
 import time
+import asyncio
+import redis
 import signal
 import logging
-from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 import uvicorn
 from utils.mock_llm import ask
 
@@ -36,7 +38,7 @@ logger = logging.getLogger(__name__)
 START_TIME = time.time()
 _is_ready = False
 _in_flight_requests = 0  # đếm số request đang xử lý
-
+r = redis.Redis()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,7 +47,7 @@ async def lifespan(app: FastAPI):
     # ── Startup ──
     logger.info("Agent starting up...")
     logger.info("Loading model and checking dependencies...")
-    time.sleep(0.2)  # simulate startup time
+    await asyncio.sleep(0.2)  # simulate startup time
     _is_ready = True
     logger.info("✅ Agent is ready!")
 
@@ -60,7 +62,7 @@ async def lifespan(app: FastAPI):
     elapsed = 0
     while _in_flight_requests > 0 and elapsed < timeout:
         logger.info(f"Waiting for {_in_flight_requests} in-flight requests...")
-        time.sleep(1)
+        await asyncio.sleep(1)
         elapsed += 1
 
     logger.info("✅ Shutdown complete")
@@ -103,69 +105,19 @@ async def ask_agent(question: str):
 
 @app.get("/health")
 def health():
-    """
-    LIVENESS PROBE — "Agent có còn sống không?"
-
-    Cloud platform (Railway, Render, K8s) gọi endpoint này định kỳ.
-    Nếu trả về non-200 hoặc timeout → platform restart container.
-
-    Nên trả về:
-    - status: "ok" hoặc "degraded"
-    - uptime: seconds
-    - version: để biết đang chạy version nào
-    """
-    uptime = round(time.time() - START_TIME, 1)
-
-    # Kiểm tra dependencies quan trọng
-    checks = {}
-
-    # Check memory (ví dụ đơn giản)
-    try:
-        import psutil
-        mem = psutil.virtual_memory()
-        checks["memory"] = {
-            "status": "ok" if mem.percent < 90 else "degraded",
-            "used_percent": mem.percent,
-        }
-    except ImportError:
-        checks["memory"] = {"status": "ok", "note": "psutil not installed"}
-
-    overall_status = "ok" if all(
-        v.get("status") == "ok" for v in checks.values()
-    ) else "degraded"
-
-    return {
-        "status": overall_status,
-        "uptime_seconds": uptime,
-        "version": "1.0.0",
-        "environment": os.getenv("ENVIRONMENT", "development"),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "checks": checks,
-    }
-
+    return {"status": "ok"}
 
 @app.get("/ready")
 def ready():
-    """
-    READINESS PROBE — "Agent có sẵn sàng nhận request chưa?"
+    try:
+        if not _is_ready:
+            raise RuntimeError("startup not complete")
 
-    Load balancer dùng endpoint này để quyết định có route
-    traffic vào instance này không.
-
-    Trả về 503 khi:
-    - Đang khởi động (model chưa load xong)
-    - Đang shutdown
-    - Database/dependencies chưa connect
-    """
-    if not _is_ready:
-        raise HTTPException(
-            status_code=503,
-            detail="Agent not ready. Check back in a few seconds.",
-        )
-    return {
-        "ready": True,
-        "in_flight_requests": _in_flight_requests,
-    }
+        # Check Redis (nếu Redis chưa chạy → trả 503 để platform chưa route traffic)
+        r.ping()
+        return {"status": "ready"}
+    except Exception as e:
+        return JSONResponse(status_code=503, content={"status": "not ready", "reason": str(e)})
 
 
 # ──────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-# Lab 12 — Complete Production Agent
+# Lab 12 — Complete Production Agent (History Tutor)
 
 Kết hợp TẤT CẢ những gì đã học trong 1 project hoàn chỉnh.
 
@@ -40,24 +40,27 @@ Kết hợp TẤT CẢ những gì đã học trong 1 project hoàn chỉnh.
 
 ---
 
-## Chạy Local
+## Chạy Local (PowerShell-friendly)
 
-```bash
-# 1. Setup
-cp .env.example .env
+```powershell
+# 1) Start full stack (agent + redis)
+docker compose up -d --build
 
-# 2. Chạy với Docker Compose
-docker compose up
+# 2) Health / readiness
+Invoke-RestMethod -Method Get -Uri "http://localhost:8000/health"
+Invoke-RestMethod -Method Get -Uri "http://localhost:8000/ready"
 
-# 3. Test
-curl http://localhost/health
+# 3) Ask history tutor (requires API key)
+$apiKey = "dev-key-change-me"
+$body = @{ question = "Tóm tắt Cách mạng tháng Tám 1945"; student_id = "hs01" } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri "http://localhost:8000/ask" `
+  -Headers @{ "X-API-Key" = $apiKey } `
+  -ContentType "application/json; charset=utf-8" `
+  -Body $body
 
-# 4. Lấy API key từ .env, test endpoint
-API_KEY=$(grep AGENT_API_KEY .env | cut -d= -f2)
-curl -H "X-API-Key: $API_KEY" \
-     -X POST http://localhost/ask \
-     -H "Content-Type: application/json" \
-     -d '{"question": "What is deployment?"}'
+# 4) View stored conversation history (Redis-backed)
+Invoke-RestMethod -Method Get -Uri "http://localhost:8000/me/history" `
+  -Headers @{ "X-API-Key" = $apiKey }
 ```
 
 ---
@@ -71,7 +74,7 @@ npm i -g @railway/cli
 # Login và deploy
 railway login
 railway init
-railway variables set OPENAI_API_KEY=sk-...
+railway variables set OPENAI_API_KEY=<your-openai-key>
 railway variables set AGENT_API_KEY=your-secret-key
 railway up
 
@@ -98,3 +101,7 @@ python check_production_ready.py
 ```
 
 Script này kiểm tra tất cả items trong checklist và báo cáo những gì còn thiếu.
+
+## Theme: History Tutor
+- Endpoint `POST /ask` trả lời theo phong cách gia sư lịch sử (mock).
+- Lưu **conversation history** theo `student_id` (hoặc theo API key) trong Redis để đảm bảo **stateless** khi scale.

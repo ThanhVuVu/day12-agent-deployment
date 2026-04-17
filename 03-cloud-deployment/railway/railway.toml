@@ -23,6 +23,6 @@ restartPolicyMaxRetries = 3
 
 # ============================================================
 # Environment variables đặt qua Railway Dashboard hoặc CLI:
-#   railway variables set OPENAI_API_KEY=sk-...
+#   railway variables set OPENAI_API_KEY=<your-openai-key>
 #   railway variables set ENVIRONMENT=production
 # ============================================================

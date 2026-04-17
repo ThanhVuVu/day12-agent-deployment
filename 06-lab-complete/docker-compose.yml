@@ -9,8 +9,9 @@ services:
       - ENVIRONMENT=staging
       - APP_NAME=Production AI Agent
       - REDIS_URL=redis://redis:6379/0
-    env_file:
-      - .env.local
+    # Optional: create `.env.local` for secrets on your machine (do NOT commit)
+    # env_file:
+    #   - .env.local
     depends_on:
       redis:
         condition: service_healthy
@@ -26,8 +27,13 @@ services:
   redis:
     image: redis:7-alpine
     command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
+
+volumes:
+  redis_data:

@@ -9,6 +9,8 @@ Mục tiêu: Tránh bill bất ngờ từ LLM API.
 Trong production: lưu trong Redis/DB, không phải in-memory.
 """
 import time
+import redis
+from datetime import datetime
 import logging
 from dataclasses import dataclass, field
 from fastapi import HTTPException
@@ -19,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Giá token (tham khảo, thay đổi theo model)
 PRICE_PER_1K_INPUT_TOKENS = 0.00015   # GPT-4o-mini: $0.15/1M input
 PRICE_PER_1K_OUTPUT_TOKENS = 0.0006   # GPT-4o-mini: $0.60/1M output
-
+r = redis.Redis()
 
 @dataclass
 class UsageRecord:
@@ -57,38 +59,28 @@ class CostGuard:
             self._records[user_id] = UsageRecord(user_id=user_id, day=today)
         return self._records[user_id]
 
-    def check_budget(self, user_id: str) -> None:
-        """
-        Kiểm tra budget trước khi gọi LLM.
-        Raise 402 nếu vượt budget.
-        """
-        record = self._get_record(user_id)
+    def check_budget(self, user_id: str, estimated_cost: float) -> None:
+        month_key = datetime.now().strftime("%Y-%m")
+        key = f"budget:{user_id}:{month_key}"
 
-        # Global budget check
-        if self._global_cost >= self.global_daily_budget_usd:
-            logger.critical(f"GLOBAL BUDGET EXCEEDED: ${self._global_cost:.4f}")
-            raise HTTPException(
-                status_code=503,
-                detail="Service temporarily unavailable due to budget limits. Try again tomorrow.",
-            )
+        # redis-py returns bytes; handle bytes/str/None robustly
+        raw_current = r.get(key)
+        if raw_current is None:
+            raw_current = 0
 
-        # Per-user budget check
-        if record.total_cost_usd >= self.daily_budget_usd:
-            raise HTTPException(
-                status_code=402,  # Payment Required
-                detail={
-                    "error": "Daily budget exceeded",
-                    "used_usd": record.total_cost_usd,
-                    "budget_usd": self.daily_budget_usd,
-                    "resets_at": "midnight UTC",
-                },
-            )
+        if isinstance(raw_current, (bytes, bytearray)):
+            raw_current = raw_current.decode("utf-8", errors="ignore") or "0"
 
-        # Warning khi gần hết budget
-        if record.total_cost_usd >= self.daily_budget_usd * self.warn_at_pct:
-            logger.warning(
-                f"User {user_id} at {record.total_cost_usd/self.daily_budget_usd*100:.0f}% budget"
-            )
+        # Be defensive: normalize to float even if Redis returns unexpected types
+        current = float(raw_current) if isinstance(raw_current, (int, float, str)) else float(str(raw_current))
+        est = float(estimated_cost) if isinstance(estimated_cost, (int, float, str)) else float(str(estimated_cost))
+
+        if current + est > 10:
+            raise HTTPException(status_code=402, detail="Budget exceeded")
+
+        r.incrbyfloat(key, est)
+        r.expire(key, 32 * 24 * 3600)  # 32 days
+        return None
 
     def record_usage(
         self, user_id: str, input_tokens: int, output_tokens: int

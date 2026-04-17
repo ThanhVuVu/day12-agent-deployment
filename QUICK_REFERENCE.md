@@ -181,7 +181,7 @@ services:
 
 ```bash
 # .env (NEVER commit this)
-OPENAI_API_KEY=sk-abc123
+OPENAI_API_KEY=<your-openai-key>
 AGENT_API_KEY=secret-key-123
 REDIS_URL=redis://localhost:6379
 PORT=8000

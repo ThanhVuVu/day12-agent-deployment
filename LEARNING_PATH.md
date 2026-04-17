@@ -28,7 +28,7 @@ Localhost Agent          Production Agent
 
 ```python
 # Your code
-api_key = "sk-abc123"  # 😱
+api_key = "OPENAI_KEY_HARDCODED"  # 😱
 app.run(port=8000)     # 🔒 Hardcoded
 ```
 

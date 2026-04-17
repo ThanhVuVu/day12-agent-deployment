@@ -13,6 +13,7 @@ Chạy sau khi docker compose up:
 import json
 import urllib.request
 import urllib.error
+import sys
 
 BASE_URL = "http://localhost:8080"
 session_id = None
@@ -37,6 +38,13 @@ def get(path: str) -> dict:
 print("=" * 60)
 print("Stateless Scaling Demo")
 print("=" * 60)
+
+# Windows console often defaults to cp1252/cp1258 and can crash on Vietnamese.
+# Force UTF-8 so the demo can print reliably.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 questions = [
     "What is Docker?",
