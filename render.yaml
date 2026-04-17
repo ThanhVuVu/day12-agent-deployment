@@ -15,12 +15,6 @@ services:
     region: singapore         # Chọn region gần user nhất
     plan: free                # free | starter | standard | pro
 
-    ipAllowList:
-      - source: 203.0.113.4/32
-        description: Office IP
-      - source: 198.51.100.0/24
-        description: Trusted Network
-
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
 
@@ -52,6 +46,11 @@ services:
     name: agent-cache
     plan: free
     maxmemoryPolicy: allkeys-lru
+    ipAllowList:
+      - source: 203.0.113.4/32
+        description: Office IP
+      - source: 198.51.100.0/24
+        description: Trusted Network
 
 # ============================================================
 # Cách deploy:
